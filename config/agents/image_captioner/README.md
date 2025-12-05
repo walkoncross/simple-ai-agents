@@ -22,15 +22,30 @@
 
 ## 使用方法
 
-### 方法 1：使用便捷脚本
+### 方法 1：使用便捷脚本（推荐）
 
 ```bash
-# 基础用法（默认问题："请详细描述这张图片的内容"）
+# 无参数运行 - 使用默认示例图片（Qwen-VL 官方示例）
+./scripts/image_captioner.sh
+
+# 本地图片文件
 ./scripts/image_captioner.sh photo.jpg
+
+# 网络图片 URL
+./scripts/image_captioner.sh https://example.com/photo.jpg
 
 # 自定义问题
 ./scripts/image_captioner.sh photo.jpg "图片中有哪些动物？"
+
+# 网络图片 + 自定义问题
+./scripts/image_captioner.sh https://example.com/photo.jpg "请描述图片的色彩和构图"
 ```
+
+**脚本特性**：
+- ✅ 自动识别本地文件和网络 URL
+- ✅ 支持默认示例图片（无需下载即可测试）
+- ✅ 友好的错误提示和使用说明
+- ✅ 显示正在处理的图片类型
 
 ### 方法 2：使用 CLI 命令
 

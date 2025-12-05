@@ -230,8 +230,13 @@ class Commands:
         if not outputs:
             return 'txt'
 
-        # 如果是 raw_response（未解析的原始响应），使用 txt
+        # 如果是 raw_response（未解析的原始响应）
         if 'raw_response' in outputs and len(outputs) == 1:
+            raw = outputs['raw_response']
+            # 检查是否有 markdown 特征（#标题、**加粗**、- 列表等）
+            if isinstance(raw, str):
+                if any(marker in raw for marker in ['##', '**', '- **', '```']):
+                    return 'md'
             return 'txt'
 
         # 统计输出字段数量和类型

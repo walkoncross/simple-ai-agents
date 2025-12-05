@@ -38,12 +38,12 @@ models:
 
 # Agent 配置
 agents:
-  # 示例 Agent - 取消注释后使用
-  # text_analyzer:
-  #   model_provider: "qwen"
-  #   config: "./config/agents/text_analyzer/config.json"
-  #   enabled: true
-  #   description: "文本分析 Agent"
+  # 示例 Agent：文本分析
+  text_analyzer:
+    model_provider: "qwen"
+    config: "./config/agents/text_analyzer/config.json"
+    enabled: true
+    description: "文本分析 Agent - 情感分析、关键词提取、摘要生成"
 
 # 验证配置
 validation:

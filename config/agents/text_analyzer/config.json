@@ -1,0 +1,13 @@
+{
+  "type": "llm",
+  "inputs": [
+    "text"
+  ],
+  "outputs": [
+    "sentiment",
+    "keywords",
+    "summary"
+  ],
+  "system_prompt": "./system.txt",
+  "user_prompt": "./user.txt"
+}

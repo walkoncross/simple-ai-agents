@@ -108,17 +108,16 @@ class Commands:
         print(f"  Description: {reg.description}")
         print(f"  Config: {reg.config}")
 
-        # 尝试加载详细配置
-        if reg.enabled:
-            try:
-                agent_config, prompts = self.config_loader.load_agent_config(agent_name)
-                print(f"  Type: {agent_config.type}")
-                print(f"  Inputs: {agent_config.inputs}")
-                print(f"  Outputs: {agent_config.outputs}")
-                print(f"  System Prompt: {agent_config.system_prompt}")
-                print(f"  User Prompt: {agent_config.user_prompt or 'N/A'}")
-            except Exception as e:
-                logger.warning(f"无法加载 Agent 详细配置: {e}")
+        # 加载详细配置（所有已加载的 agent 都是启用的）
+        try:
+            agent_config, _ = self.config_loader.load_agent_config(agent_name)
+            print(f"  Type: {agent_config.type}")
+            print(f"  Inputs: {agent_config.inputs}")
+            print(f"  Outputs: {agent_config.outputs}")
+            print(f"  System Prompt: {agent_config.system_prompt}")
+            print(f"  User Prompt: {agent_config.user_prompt or 'N/A'}")
+        except Exception as e:
+            logger.warning(f"无法加载 Agent 详细配置: {e}")
 
         print()
 

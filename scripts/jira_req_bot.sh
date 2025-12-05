@@ -1,2 +1,2 @@
-python src/main.py run jira-req-bot \
+python src/main.py run jira_req_bot \
     --inputs $1

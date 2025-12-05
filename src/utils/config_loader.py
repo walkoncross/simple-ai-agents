@@ -172,6 +172,30 @@ class ConfigLoader:
             # 扩展环境变量（非严格模式，保留未设置的环境变量）
             config_dict = expand_env_vars(config_dict, strict=False)
 
+            # 过滤掉 enabled=false 的 models
+            original_model_count = len(config_dict.get('models', {}))
+            if 'models' in config_dict:
+                config_dict['models'] = {
+                    name: model_config
+                    for name, model_config in config_dict['models'].items()
+                    if model_config.get('enabled', True)  # 默认为 True
+                }
+                disabled_models = original_model_count - len(config_dict['models'])
+                if disabled_models > 0:
+                    logger.debug(f"跳过 {disabled_models} 个禁用的模型")
+
+            # 过滤掉 enabled=false 的 agents
+            original_agent_count = len(config_dict.get('agents', {}))
+            if 'agents' in config_dict:
+                config_dict['agents'] = {
+                    name: agent_config
+                    for name, agent_config in config_dict['agents'].items()
+                    if agent_config.get('enabled', True)  # 默认为 True
+                }
+                disabled_agents = original_agent_count - len(config_dict['agents'])
+                if disabled_agents > 0:
+                    logger.debug(f"跳过 {disabled_agents} 个禁用的 Agent")
+
             self.config = Config(**config_dict)
             logger.info(f"成功加载配置文件: {self.config_path}")
             logger.debug(f"已加载 {len(self.config.models)} 个模型，{len(self.config.agents)} 个 Agent")
@@ -203,12 +227,9 @@ class ConfigLoader:
             raise RuntimeError("请先调用 load() 加载主配置")
 
         if agent_name not in self.config.agents:
-            raise ValueError(f"Agent '{agent_name}' 不存在")
+            raise ValueError(f"Agent '{agent_name}' 不存在或未启用")
 
         agent_reg = self.config.agents[agent_name]
-
-        if not agent_reg.enabled:
-            raise ValueError(f"Agent '{agent_name}' 未启用")
 
         # 加载 agent 配置文件
         config_path = Path(agent_reg.config)
@@ -263,14 +284,10 @@ class ConfigLoader:
             raise RuntimeError("请先调用 load() 加载主配置")
 
         if model_name not in self.config.models:
-            raise ValueError(f"模型 '{model_name}' 不存在")
+            raise ValueError(f"模型 '{model_name}' 不存在或未启用")
 
-        # 检查模型是否启用
+        # 获取模型配置（已过滤掉未启用的模型）
         model_config = self.config.models[model_name]
-        if not model_config.enabled:
-            raise ValueError(f"模型 '{model_name}' 未启用")
-
-        # 获取模型配置并验证环境变量（严格模式）
         model_dict = model_config.dict()
 
         # 严格验证环境变量，确保所有必需的环境变量都已设置

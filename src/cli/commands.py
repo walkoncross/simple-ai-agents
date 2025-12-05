@@ -5,6 +5,7 @@ CLI 命令实现
 """
 import sys
 import json
+import yaml
 from pathlib import Path
 from typing import Optional, List
 from loguru import logger
@@ -187,7 +188,7 @@ class Commands:
         准备输入数据
 
         Args:
-            inputs: 输入（文本、文件路径或 JSON 字符串）
+            inputs: 输入（文本、文件路径、JSON 字符串或 YAML 字符串）
 
         Returns:
             输入数据字典
@@ -202,18 +203,58 @@ class Commands:
             with open(input_path, 'r', encoding='utf-8') as f:
                 content = f.read()
 
-            # 尝试解析为 JSON
-            try:
-                data = json.loads(content)
-                if isinstance(data, dict):
-                    return data
-                else:
-                    return {"input": data}
-            except json.JSONDecodeError:
-                # 不是 JSON，返回文本
-                return {"input": content}
+            # 根据文件扩展名判断格式
+            suffix = input_path.suffix.lower()
 
-        # 不是文件，尝试解析为 JSON
+            # 尝试解析为 YAML
+            if suffix in ['.yaml', '.yml']:
+                try:
+                    data = yaml.safe_load(content)
+                    if isinstance(data, dict):
+                        return data
+                    else:
+                        return {"input": data}
+                except yaml.YAMLError:
+                    pass
+
+            # 尝试解析为 JSON
+            if suffix == '.json':
+                try:
+                    data = json.loads(content)
+                    if isinstance(data, dict):
+                        return data
+                    else:
+                        return {"input": data}
+                except json.JSONDecodeError:
+                    pass
+
+            # 如果没有明确扩展名，先尝试 JSON，再尝试 YAML
+            if suffix not in ['.json', '.yaml', '.yml']:
+                # 先尝试 JSON
+                try:
+                    data = json.loads(content)
+                    if isinstance(data, dict):
+                        return data
+                    else:
+                        return {"input": data}
+                except json.JSONDecodeError:
+                    pass
+
+                # 再尝试 YAML
+                try:
+                    data = yaml.safe_load(content)
+                    if isinstance(data, dict):
+                        return data
+                    else:
+                        return {"input": data}
+                except yaml.YAMLError:
+                    pass
+
+            # 都失败了，返回文本
+            return {"input": content}
+
+        # 不是文件，尝试解析字符串
+        # 先尝试 JSON
         try:
             data = json.loads(inputs)
             if isinstance(data, dict):
@@ -221,5 +262,17 @@ class Commands:
             else:
                 return {"input": data}
         except json.JSONDecodeError:
-            # 不是 JSON，返回文本
-            return {"input": inputs}
+            pass
+
+        # 再尝试 YAML
+        try:
+            data = yaml.safe_load(inputs)
+            if isinstance(data, dict):
+                return data
+            else:
+                return {"input": data}
+        except yaml.YAMLError:
+            pass
+
+        # 都不是，返回纯文本
+        return {"input": inputs}

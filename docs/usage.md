@@ -90,17 +90,59 @@ python src/main.py info text_analyzer
 # 直接输入 JSON
 python src/main.py run text_analyzer -i '{"text": "今天天气真好，心情也很愉快！"}'
 
-# 从文件读取输入
+# 直接输入 YAML
+python src/main.py run text_analyzer -i 'text: 今天天气真好，心情也很愉快！'
+
+# 从 JSON 文件读取输入
 echo '{"text": "这是一个测试文本"}' > input.json
 python src/main.py run text_analyzer -i input.json
 
+# 从 YAML 文件读取输入
+cat > input.yaml << EOF
+text: 这是一个测试文本
+context: 测试上下文
+EOF
+python src/main.py run text_analyzer -i input.yaml
+
 # 指定输出格式
 python src/main.py run text_analyzer -i input.json --format yaml
-python src/main.py run text_analyzer -i input.json --format txt
+python src/main.py run text_analyzer -i input.yaml --format txt
 
 # 保存到文件
-python src/main.py run text_analyzer -i input.json -o output.json
+python src/main.py run text_analyzer -i input.yaml -o output.json
 ```
+
+#### 输入格式支持
+
+系统支持多种输入格式，自动识别：
+
+1. **JSON 格式**
+   ```bash
+   # 字符串
+   -i '{"text": "hello", "context": "world"}'
+
+   # 文件 (*.json)
+   -i input.json
+   ```
+
+2. **YAML 格式**（新功能✨）
+   ```bash
+   # 字符串
+   -i 'text: hello\ncontext: world'
+
+   # 文件 (*.yaml 或 *.yml)
+   -i input.yaml
+   ```
+
+3. **纯文本**
+   ```bash
+   # 如果不是 JSON 或 YAML，会被包装为 {"input": "文本内容"}
+   -i "这是纯文本"
+   ```
+
+**格式识别优先级**：
+- 文件：根据扩展名 (.json / .yaml / .yml)
+- 字符串：先尝试 JSON，再尝试 YAML，最后作为纯文本
 
 #### 多格式输出示例
 

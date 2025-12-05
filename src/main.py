@@ -79,7 +79,7 @@ def info(ctx, name):
 
 @cli.command()
 @click.argument('agent_name')
-@click.option('-i', '--inputs', help='输入数据（文本、文件路径或 JSON）')
+@click.option('-i', '--inputs', help='输入数据（文本、文件路径、JSON 或 YAML）')
 @click.option('--image', multiple=True, help='图像输入（可多次使用）')
 @click.option('-o', '--output', help='输出文件路径')
 @click.option('--format', 'format_type', default='json',
@@ -95,12 +95,20 @@ def run(ctx, agent_name, inputs, image, output, format_type):
     示例:
 
     \b
-    # 文本输入
+    # JSON 输入
     python src/main.py run agent_name -i '{"text": "hello"}'
 
     \b
-    # 文件输入
+    # YAML 输入
+    python src/main.py run agent_name -i 'text: hello\\ncontext: world'
+
+    \b
+    # JSON 文件输入
     python src/main.py run agent_name -i input.json
+
+    \b
+    # YAML 文件输入
+    python src/main.py run agent_name -i input.yaml
 
     \b
     # 图像输入
@@ -108,7 +116,7 @@ def run(ctx, agent_name, inputs, image, output, format_type):
 
     \b
     # 指定输出格式
-    python src/main.py run agent_name -i input.json --format yaml -o output.yaml
+    python src/main.py run agent_name -i input.yaml --format yaml -o output.yaml
     """
     images = list(image) if image else None
 

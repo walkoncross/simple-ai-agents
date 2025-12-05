@@ -220,3 +220,5 @@ config.local.yaml
 test*.py
 
 docs/*.pdf
+
+config/agents/jira*

@@ -16,10 +16,19 @@ from src.cli.commands import Commands
 
 
 @click.group()
-@click.option('--config', '-c', default='config.yaml', help='配置文件路径')
+@click.option('--config', '-c', default=None, help='配置文件路径（默认：config.local.yaml 或 config.yaml）')
 @click.pass_context
 def cli(ctx, config):
     """Simple AI Agents - AI Agent 工厂框架"""
+    # 确定配置文件路径
+    if config is None:
+        # 未指定配置文件，按优先级查找
+        if Path('config.local.yaml').exists():
+            config = 'config.local.yaml'
+            click.echo(f"使用本地配置: {config}")
+        else:
+            config = 'config.yaml'
+
     # 加载配置
     try:
         config_loader = ConfigLoader(config)

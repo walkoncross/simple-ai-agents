@@ -24,6 +24,24 @@ cp .env.example .env
 
 ## 配置
 
+### 配置文件优先级
+
+CLI 会按以下优先级查找配置文件：
+
+1. `--config` 参数指定的文件
+2. `config.local.yaml`（如果存在）
+3. `config.yaml`（默认）
+
+**推荐做法**：
+- `config.yaml` - 提交到 Git，包含默认配置和环境变量占位符
+- `config.local.yaml` - 不提交，本地开发时的实际配置
+
+```bash
+# 创建本地配置（不会被 Git 追踪）
+cp config.yaml config.local.yaml
+# 编辑 config.local.yaml，填入实际的 API Key 等信息
+```
+
 ### 环境变量支持
 
 配置文件支持环境变量替换，有两种语法：

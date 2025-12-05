@@ -9,6 +9,10 @@ __pycache__/
 *.key
 *.pem
 
+# Local configuration
+config.local.yaml
+config.local.yml
+
 # C extensions
 *.so
 

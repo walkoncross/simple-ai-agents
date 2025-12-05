@@ -10,6 +10,21 @@ pip install -r requirements.txt
 
 ### 2. 配置环境变量
 
+**方法 1：使用 config.local.yaml（推荐）**
+
+```bash
+# 复制配置文件
+cp config.yaml config.local.yaml
+
+# 编辑 config.local.yaml，将环境变量替换为实际值
+# 例如：
+#   api_key: "${QWEN_API_KEY}"  改为  api_key: "your-actual-api-key"
+
+# config.local.yaml 会被自动使用且不会提交到 Git
+```
+
+**方法 2：使用环境变量**
+
 ```bash
 # 复制环境变量模板
 cp .env.example .env

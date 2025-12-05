@@ -82,9 +82,9 @@ def info(ctx, name):
 @click.option('-i', '--inputs', '--input', 'inputs', required=True, help='输入数据（文本、文件路径、JSON 或 YAML）')
 @click.option('--image', multiple=True, help='图像输入（可多次使用）')
 @click.option('-o', '--output', help='输出文件路径（默认：<input-basename>-output.<ext>）')
-@click.option('--format', 'format_type', default='json',
+@click.option('--format', 'format_type', default=None,
               type=click.Choice(['json', 'txt', 'yaml', 'md', 'markdown'], case_sensitive=False),
-              help='输出格式')
+              help='输出格式（默认：从输出内容自动判断，无法判断时为 txt）')
 @click.pass_context
 def run(ctx, agent_name, inputs, image, output, format_type):
     """
@@ -121,12 +121,13 @@ def run(ctx, agent_name, inputs, image, output, format_type):
     """
     images = list(image) if image else None
 
+    # 如果未指定格式，传递 None，让 run_command 自动判断
     exit_code = ctx.obj['commands'].run_command(
         agent_name=agent_name,
         inputs=inputs,
         images=images,
         output_file=output,
-        format_type=format_type.lower()
+        format_type=format_type.lower() if format_type else None
     )
 
     sys.exit(exit_code)

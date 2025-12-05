@@ -128,7 +128,7 @@ class Commands:
         inputs: Optional[str] = None,
         images: Optional[List[str]] = None,
         output_file: Optional[str] = None,
-        format_type: str = 'json'
+        format_type: Optional[str] = None
     ):
         """
         运行 Agent
@@ -138,7 +138,7 @@ class Commands:
             inputs: 输入数据（文本、文件路径或 JSON 字符串）
             images: 图像列表
             output_file: 输出文件路径
-            format_type: 输出格式
+            format_type: 输出格式（None 表示自动判断）
         """
         try:
             # 创建 Agent
@@ -156,6 +156,12 @@ class Commands:
             result = agent.run(input_data, images=images)
 
             print("=" * 50)
+
+            # 如果未指定格式，自动判断
+            if format_type is None:
+                format_type = self._infer_format(result)
+                logger.info(f"自动判断输出格式: {format_type}")
+                print(f"\n💡 自动选择输出格式: {format_type}")
 
             # 格式化输出
             formatter = FormatterFactory.create(format_type)
@@ -191,6 +197,55 @@ class Commands:
             logger.error(f"执行失败: {e}")
             print(f"\n❌ 错误: {e}")
             return 3
+
+    def _infer_format(self, result: dict) -> str:
+        """
+        从 agent 输出结果推断最合适的格式
+
+        Args:
+            result: agent 执行结果
+
+        Returns:
+            推断的格式类型 (json/yaml/md/txt)
+        """
+        # 获取输出数据
+        outputs = result.get('outputs', {})
+
+        if not outputs:
+            return 'txt'
+
+        # 如果是 raw_response（未解析的原始响应），使用 txt
+        if 'raw_response' in outputs and len(outputs) == 1:
+            return 'txt'
+
+        # 统计输出字段数量和类型
+        field_count = len(outputs)
+        has_long_text = False
+        has_structured_data = False
+
+        for value in outputs.values():
+            if isinstance(value, str):
+                # 检查是否有长文本（多行或超过 200 字符）
+                if '\n' in value or len(value) > 200:
+                    has_long_text = True
+            elif isinstance(value, (list, dict)):
+                has_structured_data = True
+
+        # 判断逻辑：
+        # 1. 如果有长文本且字段较多（>= 3），适合 markdown
+        if has_long_text and field_count >= 3:
+            return 'md'
+
+        # 2. 如果有结构化数据（列表、字典），适合 json
+        if has_structured_data:
+            return 'json'
+
+        # 3. 如果字段较多（>= 4），适合结构化格式
+        if field_count >= 4:
+            return 'yaml'
+
+        # 4. 默认使用 txt（简单输出）
+        return 'txt'
 
     def _prepare_inputs(self, inputs: Optional[str]) -> tuple[dict, Optional[str]]:
         """

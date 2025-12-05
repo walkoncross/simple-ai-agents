@@ -147,7 +147,11 @@ python src/main.py run text_analyzer -i input.yaml -o output.json
 #### 多格式输出示例
 
 ```bash
-# JSON 格式（默认）
+# 自动判断格式（默认）✨ 新增
+python src/main.py run text_analyzer -i input.yaml
+# 系统会根据输出内容自动选择最合适的格式
+
+# 手动指定 JSON 格式
 python src/main.py run text_analyzer -i '{"text": "测试文本"}' --format json
 
 # YAML 格式
@@ -156,7 +160,7 @@ python src/main.py run text_analyzer -i '{"text": "测试文本"}' --format yaml
 # TXT 格式（人类可读）
 python src/main.py run text_analyzer -i '{"text": "测试文本"}' --format txt
 
-# Markdown 格式（文档报告）✨ 新增
+# Markdown 格式（文档报告）
 python src/main.py run text_analyzer -i '{"text": "测试文本"}' --format markdown
 python src/main.py run text_analyzer -i input.yaml --format md -o report.md
 ```
@@ -170,7 +174,15 @@ python src/main.py run text_analyzer -i input.yaml --format md -o report.md
 | JSON | json | .json | 程序处理、API 对接 |
 | YAML | yaml | .yaml | 配置文件、人类可读 |
 | TXT | txt | .txt | 快速查看、调试 |
-| Markdown | md, markdown | .md | 文档、报告、展示 ✨ |
+| Markdown | md, markdown | .md | 文档、报告、展示 |
+
+**格式自动判断** ✨ 新功能：
+- 未指定 `--format` 时，系统自动根据输出内容选择最合适的格式
+- 判断规则：
+  - 包含长文本且字段多（≥3）→ **markdown**
+  - 包含结构化数据（列表、字典）→ **json**
+  - 字段较多（≥4）→ **yaml**
+  - 其他情况 → **txt**（默认）
 
 **Markdown 格式特点**：
 - ✅ 清晰的层级结构
@@ -178,6 +190,12 @@ python src/main.py run text_analyzer -i input.yaml --format md -o report.md
 - ✅ 适合生成文档和报告
 - ✅ 可直接在 GitHub/GitLab 等平台预览
 - ✅ 多行文本自动格式化
+
+**输出文件名规则** ✨ 新功能：
+- 有输入文件：`<input-basename>-output.<ext>`
+  - 例如：`input.yaml` → `input-output.txt`
+- 无输入文件：`inputs-<YYYYMMDD_HHMMSS>-output.<ext>`
+  - 例如：`inputs-20251205_212508-output.json`
 
 ## 创建自定义 Agent
 

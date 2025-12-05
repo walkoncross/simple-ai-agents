@@ -83,7 +83,7 @@ def info(ctx, name):
 @click.option('--image', multiple=True, help='图像输入（可多次使用）')
 @click.option('-o', '--output', help='输出文件路径')
 @click.option('--format', 'format_type', default='json',
-              type=click.Choice(['json', 'txt', 'yaml'], case_sensitive=False),
+              type=click.Choice(['json', 'txt', 'yaml', 'md', 'markdown'], case_sensitive=False),
               help='输出格式')
 @click.pass_context
 def run(ctx, agent_name, inputs, image, output, format_type):
@@ -117,6 +117,7 @@ def run(ctx, agent_name, inputs, image, output, format_type):
     \b
     # 指定输出格式
     python src/main.py run agent_name -i input.yaml --format yaml -o output.yaml
+    python src/main.py run agent_name -i input.json --format markdown -o report.md
     """
     images = list(image) if image else None
 

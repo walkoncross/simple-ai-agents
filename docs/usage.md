@@ -155,7 +155,29 @@ python src/main.py run text_analyzer -i '{"text": "测试文本"}' --format yaml
 
 # TXT 格式（人类可读）
 python src/main.py run text_analyzer -i '{"text": "测试文本"}' --format txt
+
+# Markdown 格式（文档报告）✨ 新增
+python src/main.py run text_analyzer -i '{"text": "测试文本"}' --format markdown
+python src/main.py run text_analyzer -i input.yaml --format md -o report.md
 ```
+
+#### 输出格式说明
+
+系统支持 4 种输出格式：
+
+| 格式 | 别名 | 扩展名 | 适用场景 |
+|------|------|--------|----------|
+| JSON | json | .json | 程序处理、API 对接 |
+| YAML | yaml | .yaml | 配置文件、人类可读 |
+| TXT | txt | .txt | 快速查看、调试 |
+| Markdown | md, markdown | .md | 文档、报告、展示 ✨ |
+
+**Markdown 格式特点**：
+- ✅ 清晰的层级结构
+- ✅ 支持代码高亮
+- ✅ 适合生成文档和报告
+- ✅ 可直接在 GitHub/GitLab 等平台预览
+- ✅ 多行文本自动格式化
 
 ## 创建自定义 Agent
 

@@ -8,6 +8,7 @@ from .base import BaseFormatter
 from .json_formatter import JSONFormatter
 from .txt_formatter import TXTFormatter
 from .yaml_formatter import YAMLFormatter
+from .markdown_formatter import MarkdownFormatter
 
 
 class FormatterFactory:
@@ -17,6 +18,8 @@ class FormatterFactory:
         'json': JSONFormatter,
         'txt': TXTFormatter,
         'yaml': YAMLFormatter,
+        'md': MarkdownFormatter,
+        'markdown': MarkdownFormatter,
     }
 
     @classmethod

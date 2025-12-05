@@ -14,13 +14,17 @@ from pydantic import BaseModel, Field, validator
 from loguru import logger
 
 
-def expand_env_vars(value: Any) -> Any:
+def expand_env_vars(value: Any, strict: bool = True) -> Any:
     """
     递归替换配置中的环境变量
 
     支持的格式：
-    - ${ENV_VAR}: 使用环境变量，如果不存在则报错
+    - ${ENV_VAR}: 使用环境变量，如果不存在则报错（strict=True）或保留原样（strict=False）
     - ${ENV_VAR:-default}: 使用环境变量，如果不存在则使用默认值
+
+    Args:
+        value: 要处理的值
+        strict: 严格模式。True=缺少环境变量时报错，False=保留原样等待后续验证
 
     Examples:
         api_key: ${OPENAI_API_KEY}
@@ -42,18 +46,22 @@ def expand_env_vars(value: Any) -> Any:
             elif has_default:
                 return default_value or ""
             else:
-                raise ValueError(
-                    f"环境变量 '{var_name}' 未设置且没有提供默认值。"
-                    f"请设置环境变量或使用 ${{VAR:-default}} 语法提供默认值。"
-                )
+                if strict:
+                    raise ValueError(
+                        f"环境变量 '{var_name}' 未设置且没有提供默认值。"
+                        f"请设置环境变量或使用 ${{VAR:-default}} 语法提供默认值。"
+                    )
+                else:
+                    # 非严格模式，保留原样
+                    return match.group(0)
 
         return re.sub(pattern, replace_env, value)
 
     elif isinstance(value, dict):
-        return {k: expand_env_vars(v) for k, v in value.items()}
+        return {k: expand_env_vars(v, strict) for k, v in value.items()}
 
     elif isinstance(value, list):
-        return [expand_env_vars(item) for item in value]
+        return [expand_env_vars(item, strict) for item in value]
 
     else:
         return value
@@ -67,6 +75,7 @@ class ModelConfig(BaseModel):
     model: str = Field(..., description="模型名称")
     max_tokens: int = Field(default=4096, description="最大token数")
     temperature: float = Field(default=0.7, description="温度参数")
+    enabled: bool = Field(default=True, description="是否启用")
 
     # VLM 特有配置
     resize_image_for_api: bool = Field(default=False, description="是否压缩图片")
@@ -160,8 +169,8 @@ class ConfigLoader:
             with open(self.config_path, 'r', encoding='utf-8') as f:
                 config_dict = yaml.safe_load(f)
 
-            # 扩展环境变量
-            config_dict = expand_env_vars(config_dict)
+            # 扩展环境变量（非严格模式，保留未设置的环境变量）
+            config_dict = expand_env_vars(config_dict, strict=False)
 
             self.config = Config(**config_dict)
             logger.info(f"成功加载配置文件: {self.config_path}")
@@ -256,7 +265,18 @@ class ConfigLoader:
         if model_name not in self.config.models:
             raise ValueError(f"模型 '{model_name}' 不存在")
 
-        return self.config.models[model_name]
+        # 检查模型是否启用
+        model_config = self.config.models[model_name]
+        if not model_config.enabled:
+            raise ValueError(f"模型 '{model_name}' 未启用")
+
+        # 获取模型配置并验证环境变量（严格模式）
+        model_dict = model_config.dict()
+
+        # 严格验证环境变量，确保所有必需的环境变量都已设置
+        model_dict = expand_env_vars(model_dict, strict=True)
+
+        return ModelConfig(**model_dict)
 
     def list_models(self) -> Dict[str, ModelConfig]:
         """列出所有模型"""

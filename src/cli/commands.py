@@ -31,7 +31,8 @@ class Commands:
         """列举所有 models 和 agents"""
         print("\n=== Models ===")
         for name, model_config in self.config.models.items():
-            print(f"  - {name} ({model_config.type})")
+            status = "enabled" if model_config.enabled else "disabled"
+            print(f"  - {name} ({model_config.type}) [{status}]")
 
         print("\n=== Agents ===")
         agents_info = self.factory.list_agents()
@@ -48,11 +49,11 @@ class Commands:
         models = self.config.models
         agents = self.config.agents
 
-        enabled_models = len([m for m in models.values() if m])
+        enabled_models = len([m for m in models.values() if m.enabled])
         enabled_agents = len([a for a in agents.values() if a.enabled])
 
         print("\n=== Statistics ===")
-        print(f"Total Models: {len(models)} ({enabled_models} configured)")
+        print(f"Total Models: {len(models)} ({enabled_models} enabled)")
         print(f"Total Agents: {len(agents)} ({enabled_agents} enabled)")
         print()
 
@@ -83,6 +84,7 @@ class Commands:
         model = self.config.models[model_name]
 
         print(f"\n=== Model: {model_name} ===")
+        print(f"  Enabled: {model.enabled}")
         print(f"  Type: {model.type}")
         print(f"  API Base: {model.api_base}")
         print(f"  Model: {model.model}")
@@ -144,7 +146,7 @@ class Commands:
             agent = self.factory.create_agent(agent_name, self.config_loader)
 
             # 准备输入数据
-            input_data = self._prepare_inputs(inputs)
+            input_data, input_basename = self._prepare_inputs(inputs)
 
             # 执行 Agent
             logger.info(f"执行 Agent: {agent_name}")
@@ -159,16 +161,23 @@ class Commands:
             formatter = FormatterFactory.create(format_type)
             formatted_output = formatter.format(result)
 
-            # 输出到文件或终端
-            if output_file:
-                output_path = Path(output_file)
-                output_path.parent.mkdir(parents=True, exist_ok=True)
-                with open(output_path, 'w', encoding='utf-8') as f:
-                    f.write(formatted_output)
-                print(f"\n✅ 结果已保存到: {output_path}")
-            else:
-                # 输出到终端
-                print(f"\n{formatted_output}")
+            # 确定输出文件路径
+            if output_file is None:
+                # 生成默认输出路径
+                ext = formatter.get_extension()
+                if input_basename:
+                    output_file = f"{input_basename}-output.{ext}"
+                else:
+                    from datetime import datetime
+                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                    output_file = f"inputs-{timestamp}-output.{ext}"
+
+            # 输出到文件
+            output_path = Path(output_file)
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(output_path, 'w', encoding='utf-8') as f:
+                f.write(formatted_output)
+            print(f"\n✅ 结果已保存到: {output_path}")
 
             # 返回状态码
             if result['status'] == 'success':
@@ -183,7 +192,7 @@ class Commands:
             print(f"\n❌ 错误: {e}")
             return 3
 
-    def _prepare_inputs(self, inputs: Optional[str]) -> dict:
+    def _prepare_inputs(self, inputs: Optional[str]) -> tuple[dict, Optional[str]]:
         """
         准备输入数据
 
@@ -191,14 +200,17 @@ class Commands:
             inputs: 输入（文本、文件路径、JSON 字符串或 YAML 字符串）
 
         Returns:
-            输入数据字典
+            (输入数据字典, 输入文件basename)
         """
         if inputs is None:
-            return {}
+            return {}, None
 
         # 检查是否是文件路径
         input_path = Path(inputs)
         if input_path.exists() and input_path.is_file():
+            # 获取文件basename（不含扩展名）
+            input_basename = input_path.stem
+
             # 读取文件
             with open(input_path, 'r', encoding='utf-8') as f:
                 content = f.read()
@@ -211,9 +223,9 @@ class Commands:
                 try:
                     data = yaml.safe_load(content)
                     if isinstance(data, dict):
-                        return data
+                        return data, input_basename
                     else:
-                        return {"input": data}
+                        return {"input": data}, input_basename
                 except yaml.YAMLError:
                     pass
 
@@ -222,9 +234,9 @@ class Commands:
                 try:
                     data = json.loads(content)
                     if isinstance(data, dict):
-                        return data
+                        return data, input_basename
                     else:
-                        return {"input": data}
+                        return {"input": data}, input_basename
                 except json.JSONDecodeError:
                     pass
 
@@ -234,9 +246,9 @@ class Commands:
                 try:
                     data = json.loads(content)
                     if isinstance(data, dict):
-                        return data
+                        return data, input_basename
                     else:
-                        return {"input": data}
+                        return {"input": data}, input_basename
                 except json.JSONDecodeError:
                     pass
 
@@ -244,23 +256,23 @@ class Commands:
                 try:
                     data = yaml.safe_load(content)
                     if isinstance(data, dict):
-                        return data
+                        return data, input_basename
                     else:
-                        return {"input": data}
+                        return {"input": data}, input_basename
                 except yaml.YAMLError:
                     pass
 
             # 都失败了，返回文本
-            return {"input": content}
+            return {"input": content}, input_basename
 
         # 不是文件，尝试解析字符串
         # 先尝试 JSON
         try:
             data = json.loads(inputs)
             if isinstance(data, dict):
-                return data
+                return data, None
             else:
-                return {"input": data}
+                return {"input": data}, None
         except json.JSONDecodeError:
             pass
 
@@ -268,11 +280,11 @@ class Commands:
         try:
             data = yaml.safe_load(inputs)
             if isinstance(data, dict):
-                return data
+                return data, None
             else:
-                return {"input": data}
+                return {"input": data}, None
         except yaml.YAMLError:
             pass
 
         # 都不是，返回纯文本
-        return {"input": inputs}
+        return {"input": inputs}, None

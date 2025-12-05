@@ -79,9 +79,9 @@ def info(ctx, name):
 
 @cli.command()
 @click.argument('agent_name')
-@click.option('-i', '--inputs', help='输入数据（文本、文件路径、JSON 或 YAML）')
+@click.option('-i', '--inputs', '--input', 'inputs', required=True, help='输入数据（文本、文件路径、JSON 或 YAML）')
 @click.option('--image', multiple=True, help='图像输入（可多次使用）')
-@click.option('-o', '--output', help='输出文件路径')
+@click.option('-o', '--output', help='输出文件路径（默认：<input-basename>-output.<ext>）')
 @click.option('--format', 'format_type', default='json',
               type=click.Choice(['json', 'txt', 'yaml', 'md', 'markdown'], case_sensitive=False),
               help='输出格式')
@@ -108,11 +108,11 @@ def run(ctx, agent_name, inputs, image, output, format_type):
 
     \b
     # YAML 文件输入
-    python src/main.py run agent_name -i input.yaml
+    python src/main.py run agent_name --input input.yaml
 
     \b
     # 图像输入
-    python src/main.py run agent_name --image photo.jpg --image photo2.jpg
+    python src/main.py run agent_name --input '{}' --image photo.jpg --image photo2.jpg
 
     \b
     # 指定输出格式

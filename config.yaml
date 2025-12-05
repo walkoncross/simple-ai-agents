@@ -48,6 +48,13 @@ agents:
     enabled: true
     description: "文本分析 Agent - 情感分析、关键词提取、摘要生成"
 
+  # 图像描述生成 Agent
+  image_captioner:
+    model_provider: "qwen_vl"
+    config: "./config/agents/image_captioner/config.json"
+    enabled: true
+    description: "图像描述生成 Agent - 分析图像内容并生成详细描述"
+
 # 验证配置
 validation:
   # Prompt 模板验证

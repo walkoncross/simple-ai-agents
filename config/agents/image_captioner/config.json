@@ -1,0 +1,14 @@
+{
+  "type": "vlm",
+  "inputs": [
+    "question"
+  ],
+  "outputs": [
+    "caption",
+    "details",
+    "objects",
+    "scene"
+  ],
+  "system_prompt": "./system.txt",
+  "user_prompt": "./user.txt"
+}

@@ -148,12 +148,18 @@ class Commands:
             # 准备输入数据
             input_data, input_basename = self._prepare_inputs(inputs)
 
-            # 执行 Agent
+            # 执行 Agent - 记录开始时间
+            import time
+            start_time = time.time()
+
             logger.info(f"执行 Agent: {agent_name}")
             print(f"\n🤖 执行 Agent: {agent_name}")
             print("=" * 50)
 
             result = agent.run(input_data, images=images)
+
+            # 计算总执行时间（包括 agent 内部时间 + 其他处理时间）
+            total_time = time.time() - start_time
 
             print("=" * 50)
 
@@ -183,7 +189,18 @@ class Commands:
             output_path.parent.mkdir(parents=True, exist_ok=True)
             with open(output_path, 'w', encoding='utf-8') as f:
                 f.write(formatted_output)
-            print(f"\n✅ 结果已保存到: {output_path}")
+
+            # 获取 agent 执行时间
+            agent_exec_time = result.get('execution_time', total_time)
+
+            # 打印运行信息
+            print(f"\n⏱️  运行时间: {total_time:.2f} 秒 (Agent执行: {agent_exec_time:.2f} 秒)")
+            print(f"📁 输出文件: {output_path.absolute()}")
+            print(f"✅ 执行状态: {result.get('status', 'unknown')}")
+
+            # 记录到日志
+            logger.info(f"Agent 执行完成 - 总耗时: {total_time:.2f}秒, Agent耗时: {agent_exec_time:.2f}秒")
+            logger.info(f"输出文件保存到: {output_path.absolute()}")
 
             # 返回状态码
             if result['status'] == 'success':

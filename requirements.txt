@@ -1,0 +1,16 @@
+# Core dependencies
+openai>=1.0.0
+pydantic>=2.0.0
+click>=8.1.0
+PyYAML>=6.0.0
+loguru>=0.7.0
+
+# Image processing (for VLM)
+Pillow>=10.0.0
+requests>=2.31.0
+
+# Retry mechanism
+tenacity>=8.2.0
+
+# Optional: for better CLI
+rich>=13.0.0

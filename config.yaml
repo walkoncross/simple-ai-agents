@@ -1,0 +1,73 @@
+# 工作目录配置
+output_dir: "./output"
+temp_dir: "./temp"
+cache_dir: "./cache"
+
+# 模型配置
+# 支持环境变量：${ENV_VAR} 或 ${ENV_VAR:-default_value}
+models:
+  # LLM 示例
+  qwen:
+    type: "llm"
+    api_base: "${QWEN_API_BASE:-http://localhost:8001/v1}"
+    api_key: "${QWEN_API_KEY}"
+    model: "${QWEN_MODEL:-qwen-max}"
+    max_tokens: 4096
+    temperature: 0.7
+
+  # VLM 示例
+  qwen_vl:
+    type: "vlm"
+    api_base: "${QWEN_VL_API_BASE:-http://localhost:8000/v1}"
+    api_key: "${QWEN_VL_API_KEY}"
+    model: "${QWEN_VL_MODEL:-qwen-vl-plus}"
+    max_tokens: 4096
+    temperature: 0.1
+    resize_image_for_api: true
+    max_image_size: 2048
+    image_quality: 85
+
+  # OpenAI 示例（使用环境变量）
+  gpt4:
+    type: "llm"
+    api_base: "${OPENAI_API_BASE:-https://api.openai.com/v1}"
+    api_key: "${OPENAI_API_KEY}"
+    model: "${OPENAI_MODEL:-gpt-4}"
+    max_tokens: 2048
+    temperature: 0.7
+
+# Agent 配置
+agents:
+  # 示例 Agent - 取消注释后使用
+  # text_analyzer:
+  #   model_provider: "qwen"
+  #   config: "./config/agents/text_analyzer/config.json"
+  #   enabled: true
+  #   description: "文本分析 Agent"
+
+# 验证配置
+validation:
+  # Prompt 模板验证
+  prompt_template_validation: true
+  prompt_template_strict: false  # true: 验证失败则退出
+
+  # 输入数据验证
+  input_validation: true
+  input_strict: false  # false: 缺少字段时询问用户
+
+  # 输出数据验证
+  output_validation: true
+  output_strict: false  # false: 缺少字段时警告但继续
+  output_fill_missing: true  # true: 缺失字段填充 null
+
+# API 配置
+api:
+  max_retries: 3
+  retry_delay: 2.0
+  timeout: 60
+
+# 日志配置
+logging:
+  level: "INFO"
+  file: "./logs/agent.log"
+  format: "{time:YYYY-MM-DD HH:mm:ss} | {level} | {message}"

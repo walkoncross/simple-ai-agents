@@ -157,13 +157,57 @@ class ImageProcessor:
                 'metadata': metadata or {}
             }
 
+            # 保存 JSON 缓存（用于程序读取）
             with open(cache_path, 'w') as f:
                 json.dump(cache_content, f)
+
+            # 同时保存人类可读的图像文件
+            self._save_human_readable_image(cache_key, data, metadata)
 
             logger.debug(f"保存到缓存: {cache_key}")
 
         except Exception as e:
             logger.warning(f"保存缓存失败: {cache_key}, 错误: {e}")
+
+    def _save_human_readable_image(self, cache_key: str, data: str, metadata: Optional[Dict] = None):
+        """
+        保存人类可读的图像文件
+
+        Args:
+            cache_key: 缓存键
+            data: base64 数据（格式：data:image/jpeg;base64,...）
+            metadata: 元数据（用于确定文件扩展名）
+        """
+        try:
+            import base64
+            import re
+
+            # 从 data URI 中提取 base64 数据和格式
+            # 格式：data:image/jpeg;base64,/9j/4AAQ...
+            match = re.match(r'data:image/(\w+);base64,(.+)', data)
+            if not match:
+                logger.debug(f"无法解析 data URI 格式: {data[:50]}")
+                return
+
+            image_format = match.group(1).lower()  # jpeg, png, webp, etc.
+            base64_data = match.group(2)
+
+            # 确定文件扩展名（jpeg -> jpg）
+            ext = 'jpg' if image_format == 'jpeg' else image_format
+
+            # 生成图像文件路径
+            image_path = self.cache_dir / f"{cache_key}.{ext}"
+
+            # 解码并保存图像
+            image_bytes = base64.b64decode(base64_data)
+            with open(image_path, 'wb') as f:
+                f.write(image_bytes)
+
+            logger.debug(f"保存可读图像: {image_path.name}")
+
+        except Exception as e:
+            logger.debug(f"保存可读图像失败: {cache_key}, 错误: {e}")
+            # 不影响主流程，只是没有人类可读的图像
 
     def clear_cache(self, older_than: Optional[int] = None):
         """
@@ -178,18 +222,33 @@ class ImageProcessor:
         cleared_count = 0
         current_time = time.time()
 
+        # 清理 JSON 缓存文件（同时清理对应的图像文件）
         for cache_file in self.cache_dir.glob('*.json'):
             try:
+                should_delete = False
+
                 if older_than is None:
                     # 清理所有缓存
-                    cache_file.unlink()
-                    cleared_count += 1
+                    should_delete = True
                 else:
                     # 清理过期缓存
                     cache_age = current_time - cache_file.stat().st_mtime
                     if cache_age > older_than:
-                        cache_file.unlink()
-                        cleared_count += 1
+                        should_delete = True
+
+                if should_delete:
+                    # 删除 JSON 文件
+                    cache_file.unlink()
+                    cleared_count += 1
+
+                    # 删除对应的图像文件（如果存在）
+                    cache_key = cache_file.stem  # 去掉 .json 后缀
+                    for ext in ['jpg', 'jpeg', 'png', 'webp', 'gif']:
+                        image_file = self.cache_dir / f"{cache_key}.{ext}"
+                        if image_file.exists():
+                            image_file.unlink()
+                            logger.debug(f"清理图像文件: {image_file.name}")
+
             except Exception as e:
                 logger.warning(f"删除缓存文件失败: {cache_file}, 错误: {e}")
 
@@ -348,7 +407,7 @@ class ImageProcessor:
 
         Args:
             image_url: 图像 URL
-            download: 是否下载并转换为 base64
+            download: 是否下载并转换为 base64（默认 False，由调用方控制）
 
         Returns:
             如果 download=True，返回 base64 数据 URL；否则返回原始 URL
@@ -363,7 +422,7 @@ class ImageProcessor:
 
         # 如果不需要下载，直接返回 URL（不缓存）
         if not download:
-            logger.debug(f"使用图像 URL: {image_url}")
+            logger.debug(f"使用图像 URL（不缓存）: {image_url}")
             return image_url
 
         # 尝试从缓存加载
@@ -422,7 +481,7 @@ class ImageProcessor:
 
         Args:
             path_or_url: 本地路径或 URL
-            download_url: 是否下载 URL 图像
+            download_url: 是否下载 URL 图像（默认 False，由调用方控制）
 
         Returns:
             处理后的图像数据（base64 或 URL）
@@ -442,7 +501,7 @@ class ImageProcessor:
 
         Args:
             images: 图像路径或 URL 列表
-            download_url: 是否下载 URL 图像
+            download_url: 是否下载 URL 图像（默认 False，由调用方控制）
 
         Returns:
             OpenAI Vision API 格式的图像列表

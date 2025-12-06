@@ -554,7 +554,9 @@ models:
 
 ### Q: 如何启用图像缓存以提升性能？
 
-A: 图像缓存可以避免重复处理相同的图像，提升性能：
+A: 图像缓存可以避免重复处理相同的图像，提升性能。系统提供两种缓存控制方式：
+
+#### 1. 配置文件控制（推荐）
 
 **启用缓存**：
 ```yaml
@@ -567,12 +569,27 @@ models:
     image_cache_ttl: 86400          # 缓存过期时间（秒），默认 24 小时
 ```
 
+#### 2. 命令行控制（临时覆盖）
+
+```bash
+# 临时启用缓存（覆盖配置文件设置）
+python src/main.py run image_captioner -i input.json --image photo.jpg --cache
+
+# 临时禁用缓存（覆盖配置文件设置）
+python src/main.py run image_captioner -i input.json --image photo.jpg --no-cache
+```
+
 **缓存机制说明**：
 - **缓存键生成**：基于图像源路径 + 配置参数（max_size、quality、resize）+ 文件修改时间的 SHA256 hash
 - **自动过期**：默认 24 小时后过期，可通过 `image_cache_ttl` 调整
 - **智能失效**：本地图像修改后会自动使用新的缓存键
-- **存储格式**：Base64 编码的图像数据 + 元数据，存储在 `cache/images/` 目录
-- **URL 缓存**：仅在下载图像时缓存（`download=True`），直接传递 URL 不缓存
+- **存储格式**：
+  - JSON 文件：包含 Base64 编码的图像数据 + 元数据（程序读取）
+  - 图像文件：实际的图像文件（人工查看），存储在 `cache/images/` 目录
+
+**URL 图像处理逻辑**：
+- `image_cache_enabled: true` → **下载并缓存** URL 图像（转为 base64）
+- `image_cache_enabled: false` → **直接使用 URL**（不下载，适用于 API 本身支持 URL）
 
 **缓存文件示例**：
 ```json
@@ -589,17 +606,53 @@ models:
 ```
 
 **使用场景**：
-- ✅ 批量处理相同图像
-- ✅ 开发调试时重复测试
-- ✅ API 成本优化（减少重复处理）
-- ⚠️ 注意磁盘空间占用
+- ✅ **启用缓存**：批量处理相同图像、开发调试时重复测试、减少 API token 消耗
+- ✅ **禁用缓存**：一次性处理、API 本身支持 URL、避免磁盘占用
 
 **性能提升**：
 - 跳过图像读取、解码、resize、编码等步骤
 - 首次运行正常处理，后续运行直接从缓存加载
 - 日志会显示 "从缓存加载图像: xxx"
 
-**默认禁用**：为避免意外的磁盘占用，缓存默认是禁用的，需要显式启用
+**清理缓存**：
+```bash
+# 清理所有缓存
+./scripts/clear_cache.sh
+
+# 清理 7 天前的缓存
+./scripts/clear_cache.sh 7
+
+# 清理 1 小时前的缓存
+./scripts/clear_cache.sh 1h
+```
+
+### Q: 如何保存原始图像用于离线查看或人工核验？
+
+A: 使用 `--save-images` 参数保存原始图像到本地：
+
+```bash
+# 保存原始图像（用于离线查看/人工核验）
+python src/main.py run image_captioner -i '{"question": "描述图片"}' \
+  --image https://example.com/photo.jpg \
+  --save-images
+```
+
+**保存位置**：
+- 图像保存在 `output/<agent_name>-images/` 目录
+- 文件命名：`<YYYYMMDD_HHMMSS>-<序号>.<ext>`
+- 例如：`output/image_captioner-images/20251206_161003-1.jpeg`
+
+**与缓存的区别**：
+| 功能 | 用途 | 控制参数 | 保存位置 |
+|------|------|---------|---------|
+| **图像缓存** | 性能优化（避免重复处理） | `image_cache_enabled` / `--cache` | `cache/images/` |
+| **保存原图** | 离线查看/人工核验 | `--save-images` | `output/<agent>-images/` |
+
+**使用场景**：
+- ✅ 需要离线查看输入图像
+- ✅ 人工核验模型输出结果
+- ✅ 数据归档和审计
+- ✅ URL 图像本地备份
 
 ### Q: 如何跳过验证？
 

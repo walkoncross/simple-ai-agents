@@ -6,10 +6,12 @@ Agent 基类
 import re
 import json
 import time
+import shutil
 from datetime import datetime
 from typing import Dict, Any, List, Optional
 from pathlib import Path
 
+import requests
 from loguru import logger
 
 from ..utils.config_loader import AgentConfig, ModelConfig, Config
@@ -43,6 +45,7 @@ class Agent:
         self.agent_config = agent_config
         self.prompts = prompts
         self.model_config = model_config
+        self.api_config = api_config  # 保存 API 配置（用于获取 output_dir 等）
 
         # 初始化组件
         self.model_client = ModelClient(
@@ -139,10 +142,74 @@ class Agent:
 
         return input_data
 
+    def _save_original_images(self, images: List[str]) -> List[str]:
+        """
+        保存原始图像到本地（用于离线查看/人工核验）
+
+        Args:
+            images: 图像路径或 URL 列表
+
+        Returns:
+            保存后的本地路径列表
+        """
+        from ..utils.config_loader import ConfigLoader
+
+        # 获取输出目录
+        output_dir = Path(self.api_config.output_dir if hasattr(self.api_config, 'output_dir') else './output')
+
+        # 创建图像保存目录：output/<agent_name>-images/
+        images_dir = output_dir / f"{self.name}-images"
+        images_dir.mkdir(parents=True, exist_ok=True)
+
+        saved_paths = []
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+        for idx, image_path in enumerate(images):
+            try:
+                if self.image_processor.is_url(image_path):
+                    # URL 图像：下载原图
+                    logger.debug(f"下载原始图像: {image_path}")
+                    response = requests.get(image_path, timeout=30)
+                    response.raise_for_status()
+
+                    # 从 URL 推测文件扩展名
+                    from urllib.parse import urlparse
+                    parsed_url = urlparse(image_path)
+                    url_path = parsed_url.path
+                    ext = Path(url_path).suffix or '.jpg'
+
+                    # 保存文件
+                    filename = f"{timestamp}-{idx+1}{ext}"
+                    save_path = images_dir / filename
+                    save_path.write_bytes(response.content)
+
+                    logger.info(f"已保存 URL 图像: {save_path}")
+                else:
+                    # 本地文件：直接复制
+                    source_path = Path(image_path)
+                    if not source_path.exists():
+                        logger.warning(f"源图像不存在: {image_path}")
+                        continue
+
+                    filename = f"{timestamp}-{idx+1}{source_path.suffix}"
+                    save_path = images_dir / filename
+                    shutil.copy2(source_path, save_path)
+
+                    logger.info(f"已复制本地图像: {save_path}")
+
+                saved_paths.append(str(save_path))
+
+            except Exception as e:
+                logger.warning(f"保存原始图像失败 {image_path}: {e}")
+                continue
+
+        return saved_paths
+
     def run(
         self,
         input_data: Dict[str, Any],
-        images: Optional[List[str]] = None
+        images: Optional[List[str]] = None,
+        save_images: bool = False
     ) -> Dict[str, Any]:
         """
         执行 Agent
@@ -150,6 +217,7 @@ class Agent:
         Args:
             input_data: 输入数据字典
             images: 图像路径列表（可选）
+            save_images: 是否保存原始图像到本地（用于离线查看/人工核验）
 
         Returns:
             执行结果字典
@@ -190,8 +258,21 @@ class Agent:
             processed_images = None
             if images and len(images) > 0:
                 logger.info(f"步骤 3/5: 处理 {len(images)} 张图像")
-                processed_images = self.image_processor.process_images(images)
+                # download_url 参数由 image_cache_enabled 控制
+                # cache_enabled=True: 下载并缓存 URL 图像
+                # cache_enabled=False: 直接使用 URL（不下载）
+                download_url = self.image_processor.cache_enabled
+                processed_images = self.image_processor.process_images(
+                    images,
+                    download_url=download_url
+                )
                 result['inputs']['images'] = images
+
+                # 保存原始图像到本地（用于离线查看/人工核验）
+                if save_images:
+                    saved_paths = self._save_original_images(images)
+                    result['saved_images'] = saved_paths
+                    logger.info(f"已保存 {len(saved_paths)} 张原始图像到本地")
             else:
                 logger.info("步骤 3/5: 无图像输入，跳过")
 

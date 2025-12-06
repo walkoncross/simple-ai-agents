@@ -127,7 +127,9 @@ class Commands:
         inputs: Optional[str] = None,
         images: Optional[List[str]] = None,
         output_file: Optional[str] = None,
-        format_type: Optional[str] = None
+        format_type: Optional[str] = None,
+        save_images: bool = False,
+        cache_override: Optional[bool] = None
     ):
         """
         运行 Agent
@@ -138,11 +140,18 @@ class Commands:
             images: 图像列表
             output_file: 输出文件路径
             format_type: 输出格式（None 表示自动判断）
+            save_images: 是否保存原始图像到本地
+            cache_override: 覆盖配置文件的缓存设置（None 表示使用配置文件）
         """
         try:
             # 创建 Agent
             logger.info(f"创建 Agent: {agent_name}")
             agent = self.factory.create_agent(agent_name, self.config_loader)
+
+            # 应用缓存覆盖设置（如果提供）
+            if cache_override is not None:
+                agent.image_processor.cache_enabled = cache_override
+                logger.info(f"缓存设置已覆盖: cache_enabled={cache_override}")
 
             # 准备输入数据
             input_data, input_basename = self._prepare_inputs(inputs)
@@ -155,7 +164,7 @@ class Commands:
             print(f"\n🤖 执行 Agent: {agent_name}")
             print("=" * 50)
 
-            result = agent.run(input_data, images=images)
+            result = agent.run(input_data, images=images, save_images=save_images)
 
             # 计算总执行时间（包括 agent 内部时间 + 其他处理时间）
             total_time = time.time() - start_time

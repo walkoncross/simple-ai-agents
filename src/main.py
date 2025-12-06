@@ -85,8 +85,12 @@ def info(ctx, name):
 @click.option('--format', 'format_type', default=None,
               type=click.Choice(['json', 'txt', 'yaml', 'md', 'markdown'], case_sensitive=False),
               help='输出格式（默认：从输出内容自动判断，无法判断时为 txt）')
+@click.option('--save-images/--no-save-images', default=False,
+              help='保存原始图像到本地（用于离线查看/人工核验，默认：否）')
+@click.option('--cache/--no-cache', default=None,
+              help='覆盖配置文件的缓存设置（用于临时控制缓存行为）')
 @click.pass_context
-def run(ctx, agent_name, inputs, image, output, format_type):
+def run(ctx, agent_name, inputs, image, output, format_type, save_images, cache):
     """
     运行 Agent
 
@@ -115,6 +119,14 @@ def run(ctx, agent_name, inputs, image, output, format_type):
     python src/main.py run agent_name --input '{}' --image photo.jpg --image photo2.jpg
 
     \b
+    # 保存原始图像（用于离线查看）
+    python src/main.py run image_captioner -i '{}' --image url.jpg --save-images
+
+    \b
+    # 临时禁用缓存
+    python src/main.py run image_captioner -i input.json --no-cache
+
+    \b
     # 指定输出格式
     python src/main.py run agent_name -i input.yaml --format yaml -o output.yaml
     python src/main.py run agent_name -i input.json --format markdown -o report.md
@@ -127,7 +139,9 @@ def run(ctx, agent_name, inputs, image, output, format_type):
         inputs=inputs,
         images=images,
         output_file=output,
-        format_type=format_type.lower() if format_type else None
+        format_type=format_type.lower() if format_type else None,
+        save_images=save_images,
+        cache_override=cache
     )
 
     sys.exit(exit_code)

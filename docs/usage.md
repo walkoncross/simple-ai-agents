@@ -252,10 +252,11 @@ python src/main.py run text_analyzer -i input.yaml --format md -o report.md
 
 **输出文件名规则** ✨ 智能命名：
 - 有输入文件：`<input-basename>-output.<ext>`
-  - 例如：`input.yaml` → `input-output.md`
-- 无输入文件：`inputs-<YYYYMMDD_HHMMSS>-output.<ext>`
-  - 例如：`inputs-20251205_214250-output.json`
-- 文件保存在当前目录，显示完整绝对路径
+  - 例如：`input.yaml` → `output/input-output.md`
+- 无输入文件：`<agent_name>-<YYYY-MM-DD_HH-MM-SS>.<ext>`
+  - 例如：`output/text_analyzer-2025-12-06_14-29-30.json`
+- 文件默认保存在 `./output/` 目录（由 `config.yaml` 的 `output_dir` 配置）
+- 显示完整绝对路径
 
 ## 创建自定义 Agent
 

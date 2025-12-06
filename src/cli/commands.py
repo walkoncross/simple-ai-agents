@@ -176,12 +176,22 @@ class Commands:
             if output_file is None:
                 # 生成默认输出路径
                 ext = formatter.get_extension()
+                from datetime import datetime
+                timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+
                 if input_basename:
-                    output_file = f"{input_basename}-output.{ext}"
+                    # 有输入文件：<input-basename>-output.<ext>
+                    output_filename = f"{input_basename}-output.{ext}"
                 else:
-                    from datetime import datetime
-                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                    output_file = f"inputs-{timestamp}-output.{ext}"
+                    # 无输入文件：<agent_name>-<timestamp>.<ext>
+                    output_filename = f"{agent_name}-{timestamp}.{ext}"
+
+                # 默认保存到 output_dir
+                output_dir = Path(self.config.output_dir)
+                output_dir.mkdir(parents=True, exist_ok=True)
+                output_file = output_dir / output_filename
+            else:
+                output_file = Path(output_file)
 
             # 输出到文件
             output_path = Path(output_file)

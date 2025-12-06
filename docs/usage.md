@@ -224,10 +224,10 @@ python src/main.py run text_analyzer -i input.yaml --format md -o report.md
 
 **格式自动判断** ✨ 智能特性：
 - 未指定 `--format` 时，系统自动根据输出内容选择最合适的格式
-- **判断规则**：
-  1. **Markdown 检测**：如果 raw_response 包含 markdown 特征（`##`、`**`、`- **`、` ``` `）→ **markdown**
-  2. **长文本 + 多字段**：包含长文本且字段多（≥3）→ **markdown**
-  3. **结构化数据**：包含列表或字典 → **json**
+- **判断规则**（按优先级）：
+  1. **结构化数据优先**：包含列表或字典 → **json** 🔥 *（保持数据结构完整性）*
+  2. **Markdown 检测**：如果 raw_response 包含 markdown 特征（`##`、`**`、`- **`、` ``` `）→ **markdown**
+  3. **长文本 + 多字段**：包含长文本且字段多（≥3）→ **markdown**
   4. **多字段**：字段较多（≥4）→ **yaml**
   5. **默认**：其他情况 → **txt**
 
@@ -237,6 +237,18 @@ python src/main.py run text_analyzer -i input.yaml --format md -o report.md
 - ✅ 适合生成文档和报告
 - ✅ 可直接在 GitHub/GitLab 等平台预览
 - ✅ 多行文本自动格式化
+
+**JSON 格式优势**：
+- ✅ 保持数据结构完整性（数组、对象）
+- ✅ 便于程序解析和处理
+- ✅ 标准的 API 数据交换格式
+- ✅ 支持嵌套结构
+
+**格式选择建议**：
+- **包含 list/dict** → 自动选择 JSON（推荐让系统自动判断）
+- **纯文本叙事** → Markdown 格式
+- **配置数据** → YAML 格式
+- **快速调试** → TXT 格式
 
 **输出文件名规则** ✨ 智能命名：
 - 有输入文件：`<input-basename>-output.<ext>`
@@ -306,6 +318,60 @@ python src/main.py run my_agent -i '{"text": "...", "context": "..."}'
 
 ## VLM (Vision Language Model) 使用
 
+### 便捷脚本使用 ✨ 推荐
+
+框架提供了便捷的 bash 脚本来快速运行 Agent：
+
+#### image_captioner - 图像描述生成
+
+```bash
+# 无参数运行 - 使用默认示例图片
+./scripts/image_captioner.sh
+
+# 使用本地图片
+./scripts/image_captioner.sh photo.jpg
+
+# 使用网络图片 URL
+./scripts/image_captioner.sh https://example.com/photo.jpg
+
+# 自定义问题
+./scripts/image_captioner.sh photo.jpg "图片中有哪些物体？"
+./scripts/image_captioner.sh https://example.com/photo.jpg "What animals are in this image?"
+```
+
+**脚本特性**：
+- ✅ 自动识别本地文件和网络 URL
+- ✅ 支持默认示例（无需参数即可测试）
+- ✅ 友好的提示信息
+- ✅ 自动判断输出格式为 JSON（保持结构化数据完整性）
+
+**输出示例**：
+```json
+{
+  "outputs": {
+    "caption": "一位年轻女子和她的金毛犬在沙滩上互动...",
+    "details": "这是一幅充满温馨与欢乐氛围的户外场景...",
+    "objects": ["年轻女子", "金毛犬", "沙滩", "海洋", "夕阳"],
+    "scene": "室外，海滩，日落时分，温暖宁静的自然环境"
+  }
+}
+```
+
+#### text_analyzer - 文本分析
+
+```bash
+# 无参数运行 - 使用默认示例文本
+./scripts/text_analyzer.sh
+
+# 直接输入文本
+./scripts/text_analyzer.sh "今天天气真好，心情也很愉快！"
+
+# 从文件读取文本
+./scripts/text_analyzer.sh text_file.txt
+```
+
+**注意**：text_analyzer 需要在 config.yaml 中启用并配置相应的 LLM 模型。
+
 ### 配置 VLM Agent
 
 `config/agents/image_analyzer/config.json`:
@@ -319,20 +385,25 @@ python src/main.py run my_agent -i '{"text": "...", "context": "..."}'
 }
 ```
 
-### 使用图像输入
+### 使用图像输入（CLI 方式）
 
 ```bash
 # 单张图像
-python src/main.py run image_analyzer \
+python src/main.py run image_captioner \
   --image photo.jpg \
   -i '{"question": "图片中有什么？"}'
 
 # 多张图像
-python src/main.py run image_analyzer \
+python src/main.py run image_captioner \
   --image photo1.jpg \
   --image photo2.jpg \
   --image https://example.com/photo3.jpg \
   -i '{"question": "请比较这些图片"}'
+
+# 支持本地文件和网络 URL
+python src/main.py run image_captioner \
+  --image https://qianwen-res.oss-cn-beijing.aliyuncs.com/Qwen-VL/assets/demo.jpeg \
+  -i '{"question": "请详细描述这张图片的内容"}'
 ```
 
 ## 参数验证
@@ -368,6 +439,12 @@ model: "${QWEN_MODEL:-qwen-max}"
 - 配置加载时**不验证**环境变量，即使未设置也不会报错
 - 只在**实际使用模型**时才验证环境变量
 - 允许配置文件包含多个模型，但只需设置正在使用的模型的环境变量
+
+**Agent 按需加载** ✨ 高效加载：
+- `python src/main.py` 启动时只读取 agent 的元数据（名称、描述）
+- `python src/main.py run <agent_name>` 执行时才加载指定 agent 的详细配置
+- 已加载的 agent 会缓存，重复使用时更快
+- 其他未使用的 agent 配置不会被加载，节省内存和时间
 
 ## 启用/禁用配置
 
@@ -415,6 +492,36 @@ agents:
 - 避免加载需要特殊环境变量的配置（如 OpenAI API Key）
 
 ## 常见问题
+
+### Q: 为什么不能使用 `list` 作为自定义函数名？
+
+A: `list` 是 Python 的内置函数。在早期版本中，使用 `list` 作为函数名会导致 Click CLI 参数解析失败。框架已修复此问题，使用 `@cli.command(name='list')` 配合 `def list_cmd()` 的方式避免冲突。
+
+如果你在创建自定义命令时遇到类似问题，避免使用这些 Python 内置名称：
+- `list`, `dict`, `set`, `tuple`
+- `str`, `int`, `float`, `bool`
+- `input`, `print`, `open`, `file`
+
+### Q: 运行 agent 时是只加载指定的 agent 吗？
+
+A: 是的，框架采用**按需加载**机制：
+
+**启动阶段** (`python src/main.py`)：
+- ✅ 读取所有 `enabled: true` 的 models 和 agents 的元数据
+- ✅ 供 `list`、`stat`、`info` 命令使用
+- ❌ 不加载 agent 详细配置（config.json、prompts）
+- ❌ 不验证环境变量
+
+**执行阶段** (`python src/main.py run <agent_name>`)：
+- ✅ 只加载指定 agent 的详细配置
+- ✅ 只获取该 agent 使用的模型配置
+- ✅ 只验证该模型的环境变量
+- ✅ 已加载的 agent 会缓存，重复使用更快
+
+**优势**：
+- 快速启动，不需要加载所有配置
+- 环境变量按需验证，未使用的模型可以缺少 API Key
+- 内存占用小，只加载需要的内容
 
 ### Q: 如何调试 Agent？
 

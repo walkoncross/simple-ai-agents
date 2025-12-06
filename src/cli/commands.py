@@ -180,8 +180,8 @@ class Commands:
                 timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
                 if input_basename:
-                    # 有输入文件：<input-basename>-output.<ext>
-                    output_filename = f"{input_basename}-output.{ext}"
+                    # 有输入文件：<agent_name>-<input-basename>-<timestamp>.<ext>
+                    output_filename = f"{agent_name}-{input_basename}-{timestamp}.{ext}"
                 else:
                     # 无输入文件：<agent_name>-<timestamp>.<ext>
                     output_filename = f"{agent_name}-{timestamp}.{ext}"

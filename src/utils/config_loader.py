@@ -69,6 +69,9 @@ def expand_env_vars(value: Any, strict: bool = True) -> Any:
 
 class ModelConfig(BaseModel):
     """模型配置"""
+    class Config:
+        extra = 'allow'  # 允许额外字段（用于 API 参数）
+
     type: str = Field(..., description="模型类型: llm 或 vlm")
     api_base: str = Field(..., description="API 基础 URL")
     api_key: str = Field(..., description="API Key")
@@ -91,6 +94,21 @@ class ModelConfig(BaseModel):
         if v not in ['llm', 'vlm']:
             raise ValueError(f"模型类型必须是 'llm' 或 'vlm', 但得到: {v}")
         return v
+
+    def get_extra_api_params(self) -> dict:
+        """获取额外的 API 参数（排除已知字段）"""
+        known_fields = {
+            'type', 'api_base', 'api_key', 'model', 'max_tokens', 'temperature',
+            'enabled', 'resize_image_for_api', 'max_image_size', 'image_quality',
+            'image_cache_enabled', 'image_cache_ttl'
+        }
+        extra_params = {}
+        # 使用 dict() 方法获取所有字段（包括额外字段）
+        all_fields = self.dict()
+        for field_name, field_value in all_fields.items():
+            if field_name not in known_fields:
+                extra_params[field_name] = field_value
+        return extra_params
 
 
 class AgentRegistration(BaseModel):

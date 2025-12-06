@@ -62,12 +62,22 @@ class ModelClient:
             模型响应文本
         """
         try:
-            response = self.client.chat.completions.create(
-                model=self.config.model,
-                messages=messages,
-                max_tokens=self.config.max_tokens,
-                temperature=self.config.temperature,
-            )
+            # 构建基础参数
+            api_params = {
+                "model": self.config.model,
+                "messages": messages,
+                "max_tokens": self.config.max_tokens,
+                "temperature": self.config.temperature,
+            }
+
+            # 添加额外的 API 参数（如 enable_thinking 等）
+            # 通过 extra_body 传递给底层 API（适用于自定义参数）
+            extra_params = self.config.get_extra_api_params()
+            if extra_params:
+                api_params["extra_body"] = extra_params
+                logger.debug(f"额外 API 参数（通过 extra_body）: {extra_params}")
+
+            response = self.client.chat.completions.create(**api_params)
 
             content = response.choices[0].message.content
 

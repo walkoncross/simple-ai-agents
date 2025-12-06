@@ -177,7 +177,7 @@ class Commands:
                 # 生成默认输出路径
                 ext = formatter.get_extension()
                 from datetime import datetime
-                timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
                 if input_basename:
                     # 有输入文件：<agent_name>-<timestamp>-<input-basename>.<ext>

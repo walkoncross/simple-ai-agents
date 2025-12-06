@@ -253,13 +253,13 @@ class Commands:
                 has_structured_data = True
 
         # 判断逻辑：
-        # 1. 如果有长文本且字段较多（>= 3），适合 markdown
-        if has_long_text and field_count >= 3:
-            return 'md'
-
-        # 2. 如果有结构化数据（列表、字典），适合 json
+        # 1. 如果有结构化数据（列表、字典），优先使用 json（保持数据结构完整性）
         if has_structured_data:
             return 'json'
+
+        # 2. 如果有长文本且字段较多（>= 3），适合 markdown
+        if has_long_text and field_count >= 3:
+            return 'md'
 
         # 3. 如果字段较多（>= 4），适合结构化格式
         if field_count >= 4:

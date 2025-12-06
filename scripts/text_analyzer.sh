@@ -25,4 +25,4 @@ echo "🔍 分析类型: $ANALYSIS_TYPE"
 echo ""
 
 python src/main.py run text_analyzer \
-    --input "{\"text\": \"$TEXT_CONTENT\"}"
+    -i "{\"text\": \"$TEXT_CONTENT\"}"

@@ -223,3 +223,8 @@ test*.py
 docs/*.pdf
 
 config/agents/jira*
+
+*-output.json
+*-output.yaml
+*-output.yml
+*-output.txt

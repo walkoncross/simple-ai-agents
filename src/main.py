@@ -51,9 +51,9 @@ def cli(ctx, config):
         sys.exit(1)
 
 
-@cli.command()
+@cli.command(name='list')
 @click.pass_context
-def list(ctx):
+def list_cmd(ctx):
     """列举所有 models 和 agents"""
     ctx.obj['commands'].list_command()
 
@@ -135,7 +135,7 @@ def run(ctx, agent_name, inputs, image, output, format_type):
 
 def main():
     """主函数"""
-    cli(obj={})
+    cli()
 
 
 if __name__ == '__main__':

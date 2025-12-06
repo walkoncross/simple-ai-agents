@@ -36,4 +36,4 @@ echo ""
 
 python src/main.py run image_captioner \
     --image "$IMAGE_PATH" \
-    --input "{\"question\": \"$QUESTION\"}"
+    -i "{\"question\": \"$QUESTION\"}"

@@ -251,17 +251,18 @@ python src/main.py run text_analyzer -i input.yaml --format md -o report.md
 - **快速调试** → TXT 格式
 
 **输出文件名规则** ✨ 智能命名：
-- 有输入文件：`<agent_name>-<input-basename>-<YYYY-MM-DD_HH-MM-SS>.<ext>`
-  - 例如：`output/text_analyzer-myinput-2025-12-06_14-35-28.json`
+- 有输入文件：`<agent_name>-<YYYY-MM-DD_HH-MM-SS>-<input-basename>.<ext>`
+  - 例如：`output/text_analyzer-2025-12-06_14-40-29-myinput.json`
 - 无输入文件：`<agent_name>-<YYYY-MM-DD_HH-MM-SS>.<ext>`
   - 例如：`output/text_analyzer-2025-12-06_14-29-30.json`
 - 文件默认保存在 `./output/` 目录（由 `config.yaml` 的 `output_dir` 配置）
 - 显示完整绝对路径
 
 **命名优势**：
-- ✅ Agent 名称前缀，知道是哪个 agent 处理的
-- ✅ 包含输入文件名，可追溯数据源
-- ✅ 时间戳唯一，不会覆盖历史记录
+- ✅ **时间戳前置**：按文件名排序 = 按时间排序，最新结果在底部
+- ✅ **Agent 名称前缀**：知道是哪个 agent 处理的
+- ✅ **包含输入文件名**：可追溯数据源
+- ✅ **方便批量操作**：`text_analyzer-2025-12-06*` 选择某天的所有结果
 
 ## 创建自定义 Agent
 

@@ -132,20 +132,20 @@ cache_dir: "./cache"
 # 模型配置
 models:
   # LLM 示例
-  qwen:
+  qwen3:
     type: "llm"
     api_base: "http://localhost:8001/v1"
     api_key: "your-api-key"
-    model: "qwen-max"
+    model: "qwen3-max"
     max_tokens: 4096
     temperature: 0.7
 
   # VLM 示例
-  qwen_vl:
+  qwen3_vl:
     type: "vlm"
     api_base: "http://localhost:8000/v1"
     api_key: "your-api-key"
-    model: "qwen-vl-plus"
+    model: "qwen3-vl-plus"
     max_tokens: 4096
     temperature: 0.1
     resize_image_for_api: true
@@ -163,13 +163,13 @@ models:
 # Agent 配置
 agents:
   text_analyzer:
-    model_provider: "qwen"          # 使用的模型名称
+    model_provider: "qwen3"          # 使用的模型名称
     config: "./config/agents/text_analyzer/config.json"
     enabled: true
     description: "文本分析 Agent"
 
   image_captioner:
-    model_provider: "qwen_vl"
+    model_provider: "qwen3_vl"
     config: "./config/agents/image_captioner/config.json"
     enabled: true
     description: "图像描述生成 Agent"
@@ -288,13 +288,13 @@ python main.py stat
 **输出示例**：
 ```
 Models:
-  - qwen (llm) [enabled]
-  - qwen_vl (vlm) [enabled]
+  - qwen3 (llm) [enabled]
+  - qwen3_vl (vlm) [enabled]
   - gpt4 (llm) [enabled]
 
 Agents:
-  - text_analyzer -> qwen [enabled]
-  - image_captioner -> qwen_vl [enabled]
+  - text_analyzer -> qwen3 [enabled]
+  - image_captioner -> qwen3_vl [enabled]
   - summarizer -> gpt4 [disabled]
 
 Summary:
@@ -308,7 +308,7 @@ Summary:
 
 ```bash
 # 查看 model 信息
-python main.py info qwen
+python main.py info qwen3
 
 # 查看 agent 信息
 python main.py info text_analyzer
@@ -316,15 +316,15 @@ python main.py info text_analyzer
 
 **输出示例**：
 ```
-Model: qwen
+Model: qwen3
   Type: llm
   API Base: http://localhost:8001/v1
-  Model: qwen-max
+  Model: qwen3-max
   Max Tokens: 4096
   Temperature: 0.7
 
 Agent: text_analyzer
-  Model Provider: qwen
+  Model Provider: qwen3
   Type: llm
   Enabled: true
   Description: 文本分析 Agent
@@ -689,7 +689,7 @@ python main.py run agent -i input.txt --format json -o output.txt
 在模型配置中：
 ```yaml
 models:
-  qwen_vl:
+  qwen3_vl:
     type: "vlm"
     resize_image_for_api: true      # 是否压缩图片
     max_image_size: 2048             # 最大尺寸（像素）
@@ -1089,7 +1089,13 @@ python main.py run agent_name -i input.json --skip-input-validation
 ### Phase 5: 增强功能 ⚡ **大部分完成**
 - [x] 错误处理和重试机制
 - [x] 日志系统（loguru）
-- [ ] 图像缓存（可选，暂未实现）
+- [x] ✨ 图像缓存（已完成！）
+  - [x] SHA256 缓存键生成（基于源路径 + 配置 + mtime）
+  - [x] TTL 过期机制（默认 24 小时）
+  - [x] Base64 + JSON 存储格式
+  - [x] 本地图像和 URL 缓存支持
+  - [x] 配置选项（image_cache_enabled, image_cache_ttl）
+  - [x] 缓存清理工具（clear_cache）
 - [x] 性能优化
   - [x] ✨ 懒加载环境变量验证
   - [x] ✨ 按需加载 Agent 配置

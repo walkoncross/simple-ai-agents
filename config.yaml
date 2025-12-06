@@ -7,27 +7,39 @@ cache_dir: "./cache"
 # 支持环境变量：${ENV_VAR} 或 ${ENV_VAR:-default_value}
 models:
   # LLM 示例
-  qwen:
+  qwen3:
     type: "llm"
-    api_base: "${QWEN_API_BASE:-http://localhost:8001/v1}"
-    api_key: "${QWEN_API_KEY}"
-    model: "${QWEN_MODEL:-qwen-max}"
+    api_base: "${QWEN3_API_BASE:-http://localhost:8001/v1}"
+    api_key: "${QWEN3_API_KEY}"
+    model: "${QWEN3_MODEL:-qwen3-max}"
     max_tokens: 4096
     temperature: 0.7
     enabled: true
 
   # VLM 示例
-  qwen_vl:
+  qwen3_vl:
     type: "vlm"
-    api_base: "${QWEN_VL_API_BASE:-http://localhost:8000/v1}"
-    api_key: "${QWEN_VL_API_KEY}"
-    model: "${QWEN_VL_MODEL:-qwen-vl-plus}"
+    api_base: "${QWEN3_VL_API_BASE:-http://localhost:8000/v1}"
+    api_key: "${QWEN3_VL_API_KEY}"
+    model: "${QWEN3_VL_MODEL:-qwen3-vl-plus}"
     max_tokens: 4096
     temperature: 0.1
     resize_image_for_api: true
     max_image_size: 2048
     image_quality: 85
+    # 图像缓存配置（可选）
+    image_cache_enabled: false      # 是否启用图像缓存
+    image_cache_ttl: 86400          # 缓存过期时间（秒），默认 24 小时
     enabled: true
+
+  deepseek_r1:  # Language Model - 纯文本模型
+    type: "llm"
+    api_base: "${DEEPSEEK_R1_API_BASE:-http://localhost:8000/v1}"
+    api_key: "${DEEPSEEK_R1_API_KEY}"
+    model: "${DEEPSEEK_R1_MODEL:-deepseek-r1}"
+    max_tokens: 4096
+    temperature: 0.1
+    enabled: false  # 默认禁用，如需使用请设置为true并配置环境变量
 
   # OpenAI 示例（使用环境变量）
   gpt4:
@@ -43,14 +55,14 @@ models:
 agents:
   # 示例 Agent：文本分析
   text_analyzer:
-    model_provider: "qwen"
+    model_provider: "qwen3"
     config: "./config/agents/text_analyzer/config.json"
     enabled: true
     description: "文本分析 Agent - 情感分析、关键词提取、摘要生成"
 
   # 图像描述生成 Agent
   image_captioner:
-    model_provider: "qwen_vl"
+    model_provider: "qwen3_vl"
     config: "./config/agents/image_captioner/config.json"
     enabled: true
     description: "图像描述生成 Agent - 分析图像内容并生成详细描述"

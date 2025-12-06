@@ -52,10 +52,10 @@ cp config.yaml config.local.yaml
 示例：
 ```yaml
 models:
-  qwen:
+  qwen3:
     type: "llm"
-    api_base: "${QWEN_API_BASE:-http://localhost:8001/v1}"
-    api_key: "${QWEN_API_KEY}"  # 必须设置此环境变量
+    api_base: "${QWEN3_API_BASE:-http://localhost:8001/v1}"
+    api_key: "${QWEN3_API_KEY}"  # 必须设置此环境变量
 ```
 
 ### 设置环境变量
@@ -69,13 +69,13 @@ export $(cat .env | xargs)  # 加载环境变量
 
 方法 2：直接设置
 ```bash
-export QWEN_API_KEY="your-api-key"
-export QWEN_API_BASE="http://localhost:8001/v1"
+export QWEN3_API_KEY="your-api-key"
+export QWEN3_API_BASE="http://localhost:8001/v1"
 ```
 
 方法 3：运行时设置
 ```bash
-QWEN_API_KEY="your-key" python src/main.py run agent_name -i input.json
+QWEN3_API_KEY="your-key" python src/main.py run agent_name -i input.json
 ```
 
 ## 快速开始

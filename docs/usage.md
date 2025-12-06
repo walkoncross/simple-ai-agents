@@ -18,7 +18,7 @@ cp config.yaml config.local.yaml
 
 # 编辑 config.local.yaml，将环境变量替换为实际值
 # 例如：
-#   api_key: "${QWEN_API_KEY}"  改为  api_key: "your-actual-api-key"
+#   api_key: "${QWEN3_API_KEY}"  改为  api_key: "your-actual-api-key"
 
 # config.local.yaml 会被自动使用且不会提交到 Git
 ```
@@ -30,7 +30,7 @@ cp config.yaml config.local.yaml
 cp .env.example .env
 
 # 编辑 .env 文件，设置你的 API Key
-# 至少需要设置 QWEN_API_KEY
+# 至少需要设置 QWEN3_API_KEY
 ```
 
 ### 3. 加载环境变量
@@ -303,7 +303,7 @@ mkdir -p config/agents/my_agent
 ```yaml
 agents:
   my_agent:
-    model_provider: "qwen"
+    model_provider: "qwen3"
     config: "./config/agents/my_agent/config.json"
     enabled: true
     description: "我的自定义 Agent"
@@ -428,11 +428,11 @@ python src/main.py run image_captioner \
 
 ```yaml
 # 必需的环境变量（不存在则报错）
-api_key: "${QWEN_API_KEY}"
+api_key: "${QWEN3_API_KEY}"
 
 # 带默认值的环境变量
-api_base: "${QWEN_API_BASE:-http://localhost:8001/v1}"
-model: "${QWEN_MODEL:-qwen-max}"
+api_base: "${QWEN3_API_BASE:-http://localhost:8001/v1}"
+model: "${QWEN3_MODEL:-qwen3-max}"
 ```
 
 **懒加载机制** ✨ 性能优化：
@@ -454,9 +454,9 @@ Models 和 Agents 都支持 `enabled` 字段来控制是否启用：
 
 ```yaml
 models:
-  qwen:
+  qwen3:
     type: "llm"
-    api_key: "${QWEN_API_KEY}"
+    api_key: "${QWEN3_API_KEY}"
     # ...其他配置
     enabled: true  # 启用此模型
 
@@ -468,7 +468,7 @@ models:
 
 agents:
   text_analyzer:
-    model_provider: "qwen"
+    model_provider: "qwen3"
     config: "./config/agents/text_analyzer/config.json"
     enabled: true  # 启用此 Agent
     description: "文本分析 Agent"
@@ -538,11 +538,60 @@ A: 在模型配置中调整图像处理参数：
 
 ```yaml
 models:
-  qwen_vl:
+  qwen3_vl:
     resize_image_for_api: true
     max_image_size: 1024  # 减小尺寸
     image_quality: 75     # 降低质量
 ```
+
+### Q: 如何启用图像缓存以提升性能？
+
+A: 图像缓存可以避免重复处理相同的图像，提升性能：
+
+**启用缓存**：
+```yaml
+models:
+  qwen3_vl:
+    type: "vlm"
+    # ... 其他配置
+    # 图像缓存配置
+    image_cache_enabled: true       # 启用图像缓存
+    image_cache_ttl: 86400          # 缓存过期时间（秒），默认 24 小时
+```
+
+**缓存机制说明**：
+- **缓存键生成**：基于图像源路径 + 配置参数（max_size、quality、resize）+ 文件修改时间的 SHA256 hash
+- **自动过期**：默认 24 小时后过期，可通过 `image_cache_ttl` 调整
+- **智能失效**：本地图像修改后会自动使用新的缓存键
+- **存储格式**：Base64 编码的图像数据 + 元数据，存储在 `cache/images/` 目录
+- **URL 缓存**：仅在下载图像时缓存（`download=True`），直接传递 URL 不缓存
+
+**缓存文件示例**：
+```json
+{
+  "data": "data:image/jpeg;base64,/9j/4AAQ...",
+  "timestamp": 1764999879.347573,
+  "metadata": {
+    "original_size": [800, 600],
+    "processed_size": [800, 600],
+    "format": "JPEG",
+    "mime_type": "image/jpeg"
+  }
+}
+```
+
+**使用场景**：
+- ✅ 批量处理相同图像
+- ✅ 开发调试时重复测试
+- ✅ API 成本优化（减少重复处理）
+- ⚠️ 注意磁盘空间占用
+
+**性能提升**：
+- 跳过图像读取、解码、resize、编码等步骤
+- 首次运行正常处理，后续运行直接从缓存加载
+- 日志会显示 "从缓存加载图像: xxx"
+
+**默认禁用**：为避免意外的磁盘占用，缓存默认是禁用的，需要显式启用
 
 ### Q: 如何跳过验证？
 

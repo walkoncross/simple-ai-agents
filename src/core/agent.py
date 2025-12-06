@@ -55,7 +55,10 @@ class Agent:
         self.image_processor = ImageProcessor(
             max_size=model_config.max_image_size,
             quality=model_config.image_quality,
-            resize=model_config.resize_image_for_api
+            resize=model_config.resize_image_for_api,
+            cache_enabled=model_config.image_cache_enabled,
+            cache_dir=api_config.cache_dir if hasattr(api_config, 'cache_dir') else None,
+            cache_ttl=model_config.image_cache_ttl
         )
 
         self.validator = Validator(validation_config)

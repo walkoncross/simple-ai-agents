@@ -82,6 +82,10 @@ class ModelConfig(BaseModel):
     max_image_size: int = Field(default=2048, description="最大图片尺寸")
     image_quality: int = Field(default=85, description="JPEG 压缩质量")
 
+    # 图像缓存配置（可选）
+    image_cache_enabled: bool = Field(default=False, description="是否启用图像缓存")
+    image_cache_ttl: int = Field(default=86400, description="缓存过期时间（秒）")
+
     @validator('type')
     def validate_type(cls, v):
         if v not in ['llm', 'vlm']:

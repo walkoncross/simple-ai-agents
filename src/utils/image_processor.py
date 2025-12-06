@@ -6,12 +6,16 @@
 - 图像压缩和调整大小
 - Base64 编码
 - 多图像输入
+- 图像缓存（可选）
 """
 import base64
+import hashlib
 import io
+import json
 import re
+import time
 from pathlib import Path
-from typing import List, Dict, Any, Union
+from typing import List, Dict, Any, Union, Optional
 from urllib.parse import urlparse
 
 import requests
@@ -28,17 +32,169 @@ class ImageProcessor:
         self,
         max_size: int = 2048,
         quality: int = 85,
-        resize: bool = True
+        resize: bool = True,
+        cache_enabled: bool = False,
+        cache_dir: Optional[str] = None,
+        cache_ttl: int = 86400  # 24 hours in seconds
     ):
         """
         Args:
             max_size: 图像最大尺寸（像素）
             quality: JPEG 压缩质量 (1-100)
             resize: 是否调整图像大小
+            cache_enabled: 是否启用缓存
+            cache_dir: 缓存目录路径（默认：./cache/images）
+            cache_ttl: 缓存过期时间（秒），默认 24 小时
         """
         self.max_size = max_size
         self.quality = quality
         self.resize = resize
+        self.cache_enabled = cache_enabled
+        self.cache_ttl = cache_ttl
+
+        # 设置缓存目录
+        if cache_dir is None:
+            self.cache_dir = Path('./cache/images')
+        else:
+            self.cache_dir = Path(cache_dir)
+
+        # 创建缓存目录
+        if self.cache_enabled:
+            self.cache_dir.mkdir(parents=True, exist_ok=True)
+            logger.debug(f"图像缓存已启用，缓存目录: {self.cache_dir}, TTL: {cache_ttl}秒")
+
+    def _generate_cache_key(self, source: str, **kwargs) -> str:
+        """
+        生成缓存键
+
+        Args:
+            source: 图像源（文件路径或 URL）
+            **kwargs: 额外的参数（如 max_size, quality 等）
+
+        Returns:
+            缓存键（SHA256 hash）
+        """
+        # 对于本地文件，包含文件修改时间
+        cache_data = {
+            'source': source,
+            'max_size': self.max_size,
+            'quality': self.quality,
+            'resize': self.resize
+        }
+
+        # 如果是本地文件，添加修改时间
+        if not self.is_url(source):
+            path = Path(source)
+            if path.exists():
+                cache_data['mtime'] = path.stat().st_mtime
+
+        # 添加额外参数
+        cache_data.update(kwargs)
+
+        # 生成 hash
+        cache_str = json.dumps(cache_data, sort_keys=True)
+        return hashlib.sha256(cache_str.encode()).hexdigest()
+
+    def _get_cache_path(self, cache_key: str) -> Path:
+        """获取缓存文件路径"""
+        return self.cache_dir / f"{cache_key}.json"
+
+    def _load_from_cache(self, cache_key: str) -> Optional[str]:
+        """
+        从缓存加载图像数据
+
+        Args:
+            cache_key: 缓存键
+
+        Returns:
+            缓存的 base64 数据，如果不存在或已过期则返回 None
+        """
+        if not self.cache_enabled:
+            return None
+
+        cache_path = self._get_cache_path(cache_key)
+
+        if not cache_path.exists():
+            return None
+
+        try:
+            # 检查缓存是否过期
+            cache_age = time.time() - cache_path.stat().st_mtime
+            if cache_age > self.cache_ttl:
+                logger.debug(f"缓存已过期: {cache_key} (age: {cache_age:.0f}s)")
+                cache_path.unlink()  # 删除过期缓存
+                return None
+
+            # 读取缓存
+            with open(cache_path, 'r') as f:
+                cache_data = json.load(f)
+
+            logger.debug(f"从缓存加载图像: {cache_key} (age: {cache_age:.0f}s)")
+            return cache_data.get('data')
+
+        except Exception as e:
+            logger.warning(f"读取缓存失败: {cache_key}, 错误: {e}")
+            return None
+
+    def _save_to_cache(self, cache_key: str, data: str, metadata: Optional[Dict] = None):
+        """
+        保存图像数据到缓存
+
+        Args:
+            cache_key: 缓存键
+            data: base64 数据
+            metadata: 额外的元数据
+        """
+        if not self.cache_enabled:
+            return
+
+        try:
+            cache_path = self._get_cache_path(cache_key)
+
+            cache_content = {
+                'data': data,
+                'timestamp': time.time(),
+                'metadata': metadata or {}
+            }
+
+            with open(cache_path, 'w') as f:
+                json.dump(cache_content, f)
+
+            logger.debug(f"保存到缓存: {cache_key}")
+
+        except Exception as e:
+            logger.warning(f"保存缓存失败: {cache_key}, 错误: {e}")
+
+    def clear_cache(self, older_than: Optional[int] = None):
+        """
+        清理缓存
+
+        Args:
+            older_than: 清理早于指定秒数的缓存，None 表示清理所有
+        """
+        if not self.cache_enabled or not self.cache_dir.exists():
+            return
+
+        cleared_count = 0
+        current_time = time.time()
+
+        for cache_file in self.cache_dir.glob('*.json'):
+            try:
+                if older_than is None:
+                    # 清理所有缓存
+                    cache_file.unlink()
+                    cleared_count += 1
+                else:
+                    # 清理过期缓存
+                    cache_age = current_time - cache_file.stat().st_mtime
+                    if cache_age > older_than:
+                        cache_file.unlink()
+                        cleared_count += 1
+            except Exception as e:
+                logger.warning(f"删除缓存文件失败: {cache_file}, 错误: {e}")
+
+        logger.info(f"清理了 {cleared_count} 个缓存文件")
+        return cleared_count
 
     def is_url(self, path_or_url: str) -> bool:
         """判断是否为 URL"""
@@ -142,9 +298,17 @@ class ImageProcessor:
                 f"支持的格式: {', '.join(self.SUPPORTED_FORMATS)}"
             )
 
+        # 尝试从缓存加载
+        cache_key = self._generate_cache_key(str(path.absolute()))
+        cached_data = self._load_from_cache(cache_key)
+        if cached_data:
+            logger.info(f"从缓存加载图像: {image_path}")
+            return cached_data
+
         try:
             # 打开图像
             image = Image.open(path)
+            original_size = image.size
 
             # 调整大小
             if self.resize:
@@ -159,9 +323,20 @@ class ImageProcessor:
             else:
                 mime_type = 'image/jpeg'
 
+            result = f"data:{mime_type};base64,{base64_data}"
+
+            # 保存到缓存
+            metadata = {
+                'original_size': original_size,
+                'processed_size': image.size,
+                'format': image.format,
+                'mime_type': mime_type
+            }
+            self._save_to_cache(cache_key, result, metadata)
+
             logger.debug(f"处理本地图像: {image_path}, 大小: {image.size}")
 
-            return f"data:{mime_type};base64,{base64_data}"
+            return result
 
         except Exception as e:
             logger.error(f"处理本地图像失败 {image_path}: {e}")
@@ -186,10 +361,17 @@ class ImageProcessor:
         if not self.is_url(image_url):
             raise ValueError(f"无效的 URL: {image_url}")
 
-        # 如果不需要下载，直接返回 URL
+        # 如果不需要下载，直接返回 URL（不缓存）
         if not download:
             logger.debug(f"使用图像 URL: {image_url}")
             return image_url
+
+        # 尝试从缓存加载
+        cache_key = self._generate_cache_key(image_url, download=True)
+        cached_data = self._load_from_cache(cache_key)
+        if cached_data:
+            logger.info(f"从缓存加载 URL 图像: {image_url}")
+            return cached_data
 
         # 下载图像并转换为 base64
         try:
@@ -199,6 +381,7 @@ class ImageProcessor:
 
             # 打开图像
             image = Image.open(io.BytesIO(response.content))
+            original_size = image.size
 
             # 调整大小
             if self.resize:
@@ -213,9 +396,21 @@ class ImageProcessor:
             else:
                 mime_type = 'image/jpeg'
 
+            result = f"data:{mime_type};base64,{base64_data}"
+
+            # 保存到缓存
+            metadata = {
+                'url': image_url,
+                'original_size': original_size,
+                'processed_size': image.size,
+                'format': image.format,
+                'mime_type': mime_type
+            }
+            self._save_to_cache(cache_key, result, metadata)
+
             logger.debug(f"下载并处理图像: {image_url}, 大小: {image.size}")
 
-            return f"data:{mime_type};base64,{base64_data}"
+            return result
 
         except Exception as e:
             logger.error(f"处理 URL 图像失败 {image_url}: {e}")
